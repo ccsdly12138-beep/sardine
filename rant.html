@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今日吐槽 · 沙丁鱼</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #fdf6ec;
+    --cream2: #faefd8;
+    --warm: #f5e6c8;
+    --accent-orange: #f07d3a;
+    --accent-pink: #f06b8a;
+    --accent-green: #5bba8a;
+    --accent-blue: #4a9fd4;
+    --accent-yellow: #f5c842;
+    --text-dark: #2d2416;
+    --text-mid: #6b5740;
+    --text-light: #a89070;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    font-family: 'Noto Sans SC', sans-serif;
+    color: var(--text-dark);
+    min-height: 100vh;
+  }
+
+  /* nav */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(253,246,236,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px dashed rgba(240,125,58,0.25);
+    padding: 0 1.5rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-left { display: flex; align-items: center; gap: 12px; }
+
+  .back-btn {
+    font-family: 'Caveat', cursive;
+    font-size: 1.1rem;
+    color: var(--accent-orange);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 12px;
+    transition: background 0.2s;
+  }
+  .back-btn:hover { background: rgba(240,125,58,0.1); }
+
+  .page-title {
+    font-family: 'Caveat', cursive;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-dark);
+  }
+
+  .add-btn {
+    font-family: 'Caveat', cursive;
+    font-size: 1rem;
+    background: var(--accent-orange);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 3px 10px rgba(240,125,58,0.3);
+  }
+  .add-btn:hover { transform: scale(1.04); }
+
+  /* compose modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(45,36,22,0.4);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: white;
+    border-radius: 24px;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    animation: modalIn 0.25s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .modal-title {
+    font-family: 'Caveat', cursive;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-dark);
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: var(--text-light);
+    padding: 4px;
+    border-radius: 8px;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--accent-pink); }
+
+  .compose-textarea {
+    width: 100%;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 0.95rem;
+    border: 2px solid var(--warm);
+    border-radius: 14px;
+    padding: 12px;
+    resize: none;
+    outline: none;
+    line-height: 1.6;
+    color: var(--text-dark);
+    min-height: 100px;
+    transition: border-color 0.2s;
+  }
+  .compose-textarea:focus { border-color: var(--accent-orange); }
+
+  .compose-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+
+  .compose-left { display: flex; gap: 8px; }
+
+  .tool-btn {
+    background: none;
+    border: 1.5px solid var(--warm);
+    border-radius: 10px;
+    padding: 5px 12px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-mid);
+  }
+  .tool-btn:hover { border-color: var(--accent-orange); background: rgba(240,125,58,0.07); }
+
+  .post-btn {
+    font-family: 'Caveat', cursive;
+    font-size: 1.05rem;
+    background: var(--accent-orange);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 7px 22px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .post-btn:hover { opacity: 0.88; transform: scale(1.03); }
+
+  .img-preview-strip {
+    display: none;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .img-preview-strip.show { display: flex; }
+
+  .preview-thumb {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1.5px solid var(--warm);
+  }
+
+  .preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  .preview-thumb .rm {
+    position: absolute;
+    top: 2px; right: 2px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 18px; height: 18px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  #img-file { display: none; }
+
+  /* masonry grid */
+  .masonry {
+    columns: 2;
+    column-gap: 12px;
+    padding: 1.2rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 600px) { .masonry { columns: 3; } }
+  @media (min-width: 900px) { .masonry { columns: 4; } }
+
+  .card {
+    break-inside: avoid;
+    background: white;
+    border-radius: 18px;
+    border: 1.5px solid var(--warm);
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: all 0.22s ease;
+    cursor: pointer;
+    animation: cardIn 0.35s ease both;
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.09);
+    border-color: var(--accent-orange);
+  }
+
+  .card-img img {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .card-body { padding: 12px; }
+
+  .card-mood {
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .card-text {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+    word-break: break-word;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .card-time {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    font-family: 'Caveat', cursive;
+    font-size: 0.88rem;
+  }
+
+  .card-tag {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-family: 'Caveat', cursive;
+    font-size: 0.85rem;
+  }
+
+  /* reactions */
+  .reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+
+  .reaction {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: var(--cream2);
+    border: 1.5px solid var(--warm);
+    border-radius: 12px;
+    padding: 3px 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .reaction:hover, .reaction.active {
+    border-color: var(--accent-orange);
+    background: rgba(240,125,58,0.1);
+  }
+
+  .reaction span { font-size: 0.75rem; color: var(--text-mid); }
+
+  .add-reaction {
+    background: none;
+    border: 1.5px dashed var(--warm);
+    border-radius: 12px;
+    padding: 3px 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: all 0.15s;
+  }
+  .add-reaction:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+
+  /* comments */
+  .comments { border-top: 1px solid var(--warm); padding-top: 8px; }
+
+  .comment-item {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+  }
+
+  .comment-avatar {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+    font-family: 'Caveat', cursive;
+  }
+
+  .comment-content { flex: 1; }
+  .comment-name { font-size: 0.72rem; color: var(--text-light); font-family: 'Caveat', cursive; }
+  .comment-text { color: var(--text-dark); font-size: 0.82rem; line-height: 1.4; }
+
+  .comment-input-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .comment-input {
+    flex: 1;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 0.8rem;
+    border: 1.5px solid var(--warm);
+    border-radius: 10px;
+    padding: 5px 10px;
+    outline: none;
+    background: var(--cream);
+    color: var(--text-dark);
+    transition: border-color 0.2s;
+  }
+  .comment-input:focus { border-color: var(--accent-orange); }
+
+  .comment-send {
+    background: var(--accent-orange);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .comment-send:hover { opacity: 0.85; }
+
+  /* reaction picker popup */
+  .reaction-popup {
+    display: none;
+    position: absolute;
+    background: white;
+    border: 1.5px solid var(--warm);
+    border-radius: 14px;
+    padding: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 300;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 180px;
+  }
+  .reaction-popup.show { display: flex; }
+  .rpick { font-size: 1.3rem; cursor: pointer; padding: 4px; border-radius: 8px; border: none; background: none; transition: background 0.15s; }
+  .rpick:hover { background: var(--cream2); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <a href="index.html" class="back-btn">← 回首页</a>
+    <span class="page-title">😤 今日吐槽</span>
+  </div>
+  <button class="add-btn" onclick="openCompose()">+ 发吐槽</button>
+</nav>
+
+<!-- compose modal -->
+<div class="modal-overlay" id="modal" onclick="closeOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">说说你想吐槽的 😤</span>
+      <button class="modal-close" onclick="closeCompose()">✕</button>
+    </div>
+    <textarea class="compose-textarea" id="compose-text" placeholder="今天发生了什么让你崩溃的事..." maxlength="500"></textarea>
+    <div class="img-preview-strip" id="img-strip"></div>
+    <div class="compose-toolbar">
+      <div class="compose-left">
+        <button class="tool-btn" onclick="document.getElementById('img-file').click()">🖼️ 图片</button>
+        <input type="file" id="img-file" accept="image/*" multiple onchange="handleImgs(this)"/>
+        <select class="tool-btn" id="mood-select" style="font-size:1rem">
+          <option value="😤">😤 愤怒</option>
+          <option value="😭">😭 崩溃</option>
+          <option value="🤯">🤯 震惊</option>
+          <option value="😅">😅 无语</option>
+          <option value="💀">💀 去世</option>
+          <option value="🙃">🙃 平静</option>
+        </select>
+      </div>
+      <button class="post-btn" onclick="postRant()">发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- reaction picker -->
+<div class="reaction-popup" id="rpop">
+  <button class="rpick" onclick="pickReaction('😂')">😂</button>
+  <button class="rpick" onclick="pickReaction('👍')">👍</button>
+  <button class="rpick" onclick="pickReaction('🥹')">🥹</button>
+  <button class="rpick" onclick="pickReaction('😭')">😭</button>
+  <button class="rpick" onclick="pickReaction('💀')">💀</button>
+  <button class="rpick" onclick="pickReaction('🔥')">🔥</button>
+  <button class="rpick" onclick="pickReaction('🫶')">🫶</button>
+  <button class="rpick" onclick="pickReaction('🤣')">🤣</button>
+</div>
+
+<div class="masonry" id="masonry"></div>
+
+<script>
+  const tagColors = [
+    {bg:'#fff3e8',border:'#f07d3a',text:'#c45e1a'},
+    {bg:'#ffeef3',border:'#f06b8a',text:'#b8456a'},
+    {bg:'#eef8f3',border:'#5bba8a',text:'#2e8a5e'},
+    {bg:'#eef5fb',border:'#4a9fd4',text:'#2272a0'},
+    {bg:'#fffbe8',border:'#f5c842',text:'#b8920a'},
+  ];
+
+  let pendingImgs = [];
+  let currentReactionCard = null;
+
+  const sampleRants = [
+    { mood:'😤', text:'今天外卖等了一个小时！！送来全凉了！！', time:'刚刚', imgs:[], reactions:{😂:3,💀:2}, comments:[{name:'小鱼',color:'#4a9fd4',text:'哈哈哈哈太惨了'}] },
+    { mood:'😭', text:'手机没电了刚好要找人，充电线还断了，我真的要哭出来', time:'10分钟前', imgs:[], reactions:{🥹:5}, comments:[] },
+    { mood:'🤯', text:'开会开了三个小时，什么结论也没有，纯纯浪费生命', time:'1小时前', imgs:[], reactions:{💀:8,😂:4,🔥:1}, comments:[{name:'阿橙',color:'#f06b8a',text:'共鸣！！！'},{name:'大头',color:'#5bba8a',text:'我昨天也是'}] },
+    { mood:'😅', text:'买了件衣服忘了，又买了同款……', time:'昨天', imgs:[], reactions:{😂:6,🤣:3}, comments:[] },
+    { mood:'💀', text:'我妈问我什么时候找对象，已经是第9999次了', time:'昨天', imgs:[], reactions:{💀:12,🥹:7,😂:5}, comments:[{name:'小鱼',color:'#4a9fd4',text:'救救我们'}] },
+  ];
+
+  function renderCard(data, prepend=false) {
+    const masonry = document.getElementById('masonry');
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.reactions = JSON.stringify(data.reactions);
+
+    const tc = tagColors[Math.floor(Math.random()*tagColors.length)];
+
+    let imgsHtml = '';
+    if (data.imgs && data.imgs.length > 0) {
+      imgsHtml = `<div class="card-img"><img src="${data.imgs[0]}" alt=""/></div>`;
+    }
+
+    const reactHtml = buildReactions(data.reactions, card);
+    const commentsHtml = buildComments(data.comments || []);
+
+    card.innerHTML = `
+      ${imgsHtml}
+      <div class="card-body">
+        <span class="card-mood">${data.mood}</span>
+        <div class="card-text">${escHtml(data.text)}</div>
+        <div class="card-meta">
+          <span class="card-time">${data.time}</span>
+          <span class="card-tag" style="background:${tc.bg};border:1px solid ${tc.border};color:${tc.text}">${data.mood} 吐槽</span>
+        </div>
+        <div class="reactions">${reactHtml}<button class="add-reaction" onclick="showReactionPicker(event,this.closest('.card'))">+ 😊</button></div>
+        <div class="comments">
+          ${commentsHtml}
+          <div class="comment-input-row">
+            <input class="comment-input" placeholder="说点什么..." onkeydown="if(event.key==='Enter')addComment(this)"/>
+            <button class="comment-send" onclick="addComment(this.previousElementSibling)">回复</button>
+          </div>
+        </div>
+      </div>`;
+
+    if (prepend && masonry.firstChild) {
+      masonry.insertBefore(card, masonry.firstChild);
+    } else {
+      masonry.appendChild(card);
+    }
+  }
+
+  function buildReactions(reactions, card) {
+    return Object.entries(reactions).map(([emoji, count]) =>
+      `<span class="reaction" onclick="toggleReaction(this,'${emoji}',${count})">${emoji} <span>${count}</span></span>`
+    ).join('');
+  }
+
+  function buildComments(comments) {
+    return comments.map(c => `
+      <div class="comment-item">
+        <div class="comment-avatar" style="background:${c.color}">${c.name.slice(0,2)}</div>
+        <div class="comment-content">
+          <div class="comment-name">${escHtml(c.name)}</div>
+          <div class="comment-text">${escHtml(c.text)}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function toggleReaction(el, emoji, baseCount) {
+    el.classList.toggle('active');
+    const span = el.querySelector('span');
+    const count = parseInt(span.textContent);
+    span.textContent = el.classList.contains('active') ? count+1 : count-1;
+  }
+
+  let rpopTarget = null;
+
+  function showReactionPicker(e, card) {
+    e.stopPropagation();
+    rpopTarget = card;
+    const pop = document.getElementById('rpop');
+    pop.classList.add('show');
+    pop.style.top = (e.clientY - 130) + 'px';
+    pop.style.left = (e.clientX - 80) + 'px';
+    pop.style.position = 'fixed';
+  }
+
+  function pickReaction(emoji) {
+    if (!rpopTarget) return;
+    const reactionsDiv = rpopTarget.querySelector('.reactions');
+    const existing = [...reactionsDiv.querySelectorAll('.reaction')].find(r => r.textContent.startsWith(emoji));
+    if (existing) {
+      existing.classList.add('active');
+      const span = existing.querySelector('span');
+      span.textContent = parseInt(span.textContent) + 1;
+    } else {
+      const btn = reactionsDiv.querySelector('.add-reaction');
+      const r = document.createElement('span');
+      r.className = 'reaction active';
+      r.innerHTML = `${emoji} <span>1</span>`;
+      r.onclick = function() { toggleReaction(this, emoji, 1); };
+      reactionsDiv.insertBefore(r, btn);
+    }
+    document.getElementById('rpop').classList.remove('show');
+  }
+
+  function addComment(input) {
+    const text = input.value.trim();
+    if (!text) return;
+    const card = input.closest('.card');
+    const commentsDiv = card.querySelector('.comments');
+    const item = document.createElement('div');
+    item.className = 'comment-item';
+    item.innerHTML = `
+      <div class="comment-avatar" style="background:var(--accent-orange)">我</div>
+      <div class="comment-content">
+        <div class="comment-name">我</div>
+        <div class="comment-text">${escHtml(text)}</div>
+      </div>`;
+    commentsDiv.insertBefore(item, commentsDiv.querySelector('.comment-input-row'));
+    input.value = '';
+  }
+
+  function openCompose() { document.getElementById('modal').classList.add('show'); }
+  function closeCompose() {
+    document.getElementById('modal').classList.remove('show');
+    document.getElementById('compose-text').value = '';
+    pendingImgs = [];
+    document.getElementById('img-strip').innerHTML = '';
+    document.getElementById('img-strip').classList.remove('show');
+  }
+  function closeOnOverlay(e) { if (e.target === document.getElementById('modal')) closeCompose(); }
+
+  function handleImgs(input) {
+    const strip = document.getElementById('img-strip');
+    for (const file of input.files) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const src = e.target.result;
+        pendingImgs.push(src);
+        const thumb = document.createElement('div');
+        thumb.className = 'preview-thumb';
+        const idx = pendingImgs.length - 1;
+        thumb.innerHTML = `<img src="${src}"/><button class="rm" onclick="removeThumb(${idx},this.parentElement)">✕</button>`;
+        strip.appendChild(thumb);
+        strip.classList.add('show');
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function removeThumb(idx, el) {
+    pendingImgs.splice(idx, 1);
+    el.remove();
+    if (pendingImgs.length === 0) document.getElementById('img-strip').classList.remove('show');
+  }
+
+  function postRant() {
+    const text = document.getElementById('compose-text').value.trim();
+    if (!text) return;
+    const mood = document.getElementById('mood-select').value;
+    renderCard({ mood, text, time:'刚刚', imgs:[...pendingImgs], reactions:{}, comments:[] }, true);
+    closeCompose();
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  document.addEventListener('click', e => {
+    const pop = document.getElementById('rpop');
+    if (!pop.contains(e.target)) pop.classList.remove('show');
+  });
+
+  sampleRants.forEach(r => renderCard(r));
+</script>
+</body>
+</html>

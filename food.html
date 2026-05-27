@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今天吃了啥 · 沙丁鱼</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #fdf6ec;
+    --cream2: #faefd8;
+    --warm: #f5e6c8;
+    --accent-orange: #f07d3a;
+    --accent-pink: #f06b8a;
+    --accent-green: #5bba8a;
+    --accent-blue: #4a9fd4;
+    --accent-yellow: #f5c842;
+    --text-dark: #2d2416;
+    --text-mid: #6b5740;
+    --text-light: #a89070;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--cream); font-family:'Noto Sans SC',sans-serif; color:var(--text-dark); min-height:100vh; }
+
+  nav {
+    position:sticky; top:0; z-index:100;
+    background:rgba(253,246,236,0.92); backdrop-filter:blur(10px);
+    border-bottom:2px dashed rgba(240,125,58,0.25);
+    padding:0 1.5rem; height:56px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .nav-left { display:flex; align-items:center; gap:12px; }
+  .back-btn { font-family:'Caveat',cursive; font-size:1.1rem; color:var(--accent-orange); text-decoration:none; padding:4px 10px; border-radius:12px; transition:background 0.2s; }
+  .back-btn:hover { background:rgba(240,125,58,0.1); }
+  .page-title { font-family:'Caveat',cursive; font-size:1.4rem; font-weight:700; }
+  .add-btn { font-family:'Caveat',cursive; font-size:1rem; background:var(--accent-orange); color:white; border:none; border-radius:20px; padding:6px 18px; cursor:pointer; transition:all 0.2s; box-shadow:0 3px 10px rgba(240,125,58,0.3); }
+  .add-btn:hover { transform:scale(1.04); }
+
+  /* stats bar */
+  .stats-bar {
+    max-width:700px; margin:1.2rem auto 0; padding:0 1.2rem;
+    display:flex; gap:10px; flex-wrap:wrap;
+  }
+  .stat-chip {
+    background:white; border:1.5px solid var(--warm); border-radius:14px;
+    padding:8px 16px; display:flex; flex-direction:column; align-items:center; gap:2px;
+    flex:1; min-width:80px;
+  }
+  .stat-num { font-family:'Caveat',cursive; font-size:1.6rem; font-weight:700; color:var(--accent-orange); line-height:1; }
+  .stat-label { font-size:0.75rem; color:var(--text-light); }
+
+  /* content */
+  .content { max-width:700px; margin:0 auto; padding:1.2rem; }
+
+  /* date group */
+  .date-group { margin-bottom:2rem; }
+  .date-header {
+    display:flex; align-items:center; gap:10px; margin-bottom:1rem;
+    position:sticky; top:56px; z-index:50;
+    background:var(--cream); padding:6px 0;
+  }
+  .date-label {
+    font-family:'Caveat',cursive; font-size:1.3rem; font-weight:700; color:var(--text-dark);
+  }
+  .date-line { flex:1; height:2px; background:var(--warm); border-radius:1px; }
+  .date-count { font-family:'Caveat',cursive; font-size:0.95rem; color:var(--text-light); }
+
+  /* meal card */
+  .meal-card {
+    background:white; border-radius:20px; border:1.5px solid var(--warm);
+    overflow:hidden; margin-bottom:12px;
+    transition:all 0.22s; animation:cardIn 0.3s ease both;
+  }
+  @keyframes cardIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+  .meal-card:hover { box-shadow:0 8px 24px rgba(0,0,0,0.08); border-color:rgba(240,125,58,0.4); }
+
+  .meal-img { width:100%; max-height:220px; object-fit:cover; display:block; cursor:pointer; }
+
+  .meal-body { padding:14px; }
+
+  .meal-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:8px; gap:8px; }
+
+  .meal-name { font-family:'Caveat',cursive; font-size:1.4rem; font-weight:700; color:var(--text-dark); }
+
+  .meal-time-badge {
+    font-family:'Caveat',cursive; font-size:0.85rem;
+    background:var(--cream2); color:var(--text-mid);
+    padding:3px 10px; border-radius:10px; white-space:nowrap; flex-shrink:0;
+  }
+
+  .meal-meta { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+
+  .meta-tag {
+    display:flex; align-items:center; gap:4px;
+    font-size:0.82rem; color:var(--text-mid);
+    background:var(--cream2); border-radius:10px; padding:3px 10px;
+  }
+
+  /* star rating */
+  .stars { display:flex; gap:2px; }
+  .star { font-size:1rem; cursor:pointer; transition:transform 0.15s; user-select:none; }
+  .star:hover { transform:scale(1.2); }
+
+  .meal-note { font-size:0.88rem; color:var(--text-mid); line-height:1.6; margin-bottom:10px; }
+
+  /* reactions */
+  .reactions { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+  .reaction {
+    display:flex; align-items:center; gap:3px;
+    background:var(--cream2); border:1.5px solid var(--warm);
+    border-radius:12px; padding:3px 8px; font-size:0.8rem;
+    cursor:pointer; transition:all 0.15s; user-select:none;
+  }
+  .reaction:hover, .reaction.active { border-color:var(--accent-orange); background:rgba(240,125,58,0.1); }
+  .reaction span { font-size:0.75rem; color:var(--text-mid); }
+
+  /* comments */
+  .comments { border-top:1px solid var(--warm); padding-top:10px; }
+  .comment-item { display:flex; gap:6px; margin-bottom:8px; }
+  .comment-avatar { width:26px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700; color:white; flex-shrink:0; font-family:'Caveat',cursive; }
+  .comment-name { font-size:0.72rem; color:var(--text-light); font-family:'Caveat',cursive; }
+  .comment-text { color:var(--text-dark); font-size:0.85rem; line-height:1.4; }
+  .comment-input-row { display:flex; gap:6px; margin-top:6px; }
+  .comment-input { flex:1; font-family:'Noto Sans SC',sans-serif; font-size:0.82rem; border:1.5px solid var(--warm); border-radius:10px; padding:6px 10px; outline:none; background:var(--cream); color:var(--text-dark); transition:border-color 0.2s; }
+  .comment-input:focus { border-color:var(--accent-orange); }
+  .comment-send { background:var(--accent-orange); color:white; border:none; border-radius:10px; padding:6px 12px; font-size:0.82rem; cursor:pointer; transition:opacity 0.2s; }
+  .comment-send:hover { opacity:0.85; }
+
+  /* modal */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(45,36,22,0.4); z-index:200; align-items:center; justify-content:center; padding:1rem; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:white; border-radius:24px; padding:1.5rem; width:100%; max-width:480px; box-shadow:0 20px 60px rgba(0,0,0,0.15); animation:modalIn 0.25s ease; max-height:90vh; overflow-y:auto; }
+  @keyframes modalIn { from{opacity:0;transform:translateY(20px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+  .modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.2rem; }
+  .modal-title { font-family:'Caveat',cursive; font-size:1.4rem; font-weight:700; }
+  .modal-close { background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--text-light); padding:4px; border-radius:8px; }
+  .modal-close:hover { color:var(--accent-pink); }
+
+  .form-row { margin-bottom:12px; }
+  .form-label { font-family:'Caveat',cursive; font-size:1rem; color:var(--text-mid); margin-bottom:4px; display:block; }
+  .form-input {
+    width:100%; font-family:'Noto Sans SC',sans-serif; font-size:0.92rem;
+    border:2px solid var(--warm); border-radius:12px; padding:9px 12px;
+    outline:none; color:var(--text-dark); transition:border-color 0.2s; background:white;
+  }
+  .form-input:focus { border-color:var(--accent-orange); }
+  textarea.form-input { resize:none; min-height:70px; line-height:1.5; }
+
+  .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+
+  .star-select { display:flex; gap:4px; }
+  .star-sel { font-size:1.4rem; cursor:pointer; transition:transform 0.15s; user-select:none; }
+  .star-sel:hover { transform:scale(1.2); }
+
+  .img-upload-area {
+    border:2px dashed var(--warm); border-radius:14px; padding:1.5rem;
+    text-align:center; cursor:pointer; transition:all 0.2s; color:var(--text-light);
+    font-family:'Caveat',cursive; font-size:1rem;
+  }
+  .img-upload-area:hover { border-color:var(--accent-orange); color:var(--accent-orange); }
+
+  .img-preview { width:100%; border-radius:12px; margin-top:10px; display:none; }
+
+  .meal-type-btns { display:flex; gap:8px; flex-wrap:wrap; }
+  .type-btn {
+    font-family:'Caveat',cursive; font-size:1rem;
+    border:1.5px solid var(--warm); border-radius:12px;
+    padding:5px 14px; cursor:pointer; background:white; color:var(--text-mid);
+    transition:all 0.2s;
+  }
+  .type-btn.active, .type-btn:hover { border-color:var(--accent-orange); background:rgba(240,125,58,0.1); color:var(--accent-orange); }
+
+  .post-btn { width:100%; font-family:'Caveat',cursive; font-size:1.1rem; background:var(--accent-orange); color:white; border:none; border-radius:14px; padding:10px; cursor:pointer; transition:all 0.2s; margin-top:4px; }
+  .post-btn:hover { opacity:0.88; }
+
+  #food-img-file { display:none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <a href="index.html" class="back-btn">← 回首页</a>
+    <span class="page-title">🍜 今天吃了啥</span>
+  </div>
+  <button class="add-btn" onclick="openModal()">+ 记一餐</button>
+</nav>
+
+<div class="stats-bar" id="stats-bar">
+  <div class="stat-chip"><span class="stat-num" id="stat-total">5</span><span class="stat-label">今日餐数</span></div>
+  <div class="stat-chip"><span class="stat-num" id="stat-avg">4.2</span><span class="stat-label">平均评分</span></div>
+  <div class="stat-chip"><span class="stat-num" id="stat-spend">¥68</span><span class="stat-label">今日花费</span></div>
+  <div class="stat-chip"><span class="stat-num">🔥</span><span class="stat-label">连续记录 3 天</span></div>
+</div>
+
+<div class="content" id="content"></div>
+
+<!-- modal -->
+<div class="modal-overlay" id="modal" onclick="closeOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🍴 记一餐</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">吃的什么 *</label>
+      <input class="form-input" id="f-name" placeholder="比如：番茄炒蛋盖饭"/>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">哪顿饭</label>
+      <div class="meal-type-btns" id="meal-type-btns">
+        <button class="type-btn active" onclick="selectType(this)">🌅 早餐</button>
+        <button class="type-btn" onclick="selectType(this)">☀️ 午餐</button>
+        <button class="type-btn" onclick="selectType(this)">🌙 晚餐</button>
+        <button class="type-btn" onclick="selectType(this)">🍪 宵夜</button>
+      </div>
+    </div>
+
+    <div class="form-row-2">
+      <div>
+        <label class="form-label">在哪吃</label>
+        <input class="form-input" id="f-place" placeholder="家里 / 公司 / 餐厅名"/>
+      </div>
+      <div>
+        <label class="form-label">花了多少钱</label>
+        <input class="form-input" id="f-price" placeholder="¥" type="number" min="0"/>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">好不好吃</label>
+      <div class="star-select" id="star-select">
+        <span class="star-sel" onclick="setStar(1)">⭐</span>
+        <span class="star-sel" onclick="setStar(2)">⭐</span>
+        <span class="star-sel" onclick="setStar(3)">⭐</span>
+        <span class="star-sel" onclick="setStar(4)">⭐</span>
+        <span class="star-sel" onclick="setStar(5)">⭐</span>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">备注（可选）</label>
+      <textarea class="form-input" id="f-note" placeholder="有什么想说的..."></textarea>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">拍张照</label>
+      <div class="img-upload-area" onclick="document.getElementById('food-img-file').click()">
+        📷 点击上传食物照片
+      </div>
+      <input type="file" id="food-img-file" accept="image/*" onchange="previewFoodImg(this)"/>
+      <img id="food-img-preview" class="img-preview"/>
+    </div>
+
+    <button class="post-btn" onclick="postMeal()">记录这一餐 🍽️</button>
+  </div>
+</div>
+
+<script>
+  let selectedStar = 5;
+  let selectedType = '🌅 早餐';
+  let pendingImg = null;
+
+  const sampleData = [
+    {
+      date:'今天', meals:[
+        { name:'番茄炒蛋盖饭', type:'☀️ 午餐', place:'家里', price:0, stars:5, note:'自己做的！超级好吃，番茄汁拌饭绝了', img:null, time:'12:30', reactions:{'😋':4,'👍':2}, comments:[{name:'小鱼',color:'#4a9fd4',text:'给我来一碗！'}] },
+        { name:'煎饼果子', type:'🌅 早餐', place:'楼下摊位', price:8, stars:4, note:'加了两个蛋，老板很大方', img:null, time:'08:15', reactions:{'🔥':3}, comments:[] },
+      ]
+    },
+    {
+      date:'昨天', meals:[
+        { name:'麻辣烫', type:'🌙 晚餐', place:'张亮麻辣烫', price:35, stars:3, note:'有点贵，但还是忍不住吃了', img:null, time:'18:45', reactions:{'😅':5,'💀':1}, comments:[{name:'阿橙',color:'#f06b8a',text:'我也爱吃！'},{name:'大头',color:'#5bba8a',text:'辣的？'}] },
+        { name:'酸奶+蓝莓', type:'🌅 早餐', place:'家里', price:12, stars:5, note:'健康早餐打卡', img:null, time:'09:00', reactions:{'🥰':6}, comments:[] },
+        { name:'黄焖鸡米饭', type:'☀️ 午餐', place:'公司附近', price:23, stars:4, note:'外卖，送得还挺快', img:null, time:'12:00', reactions:{'👍':2}, comments:[] },
+      ]
+    }
+  ];
+
+  function renderAll(data) {
+    const content = document.getElementById('content');
+    content.innerHTML = '';
+    data.forEach(group => {
+      const g = document.createElement('div');
+      g.className = 'date-group';
+      g.innerHTML = `
+        <div class="date-header">
+          <span class="date-label">${group.date}</span>
+          <div class="date-line"></div>
+          <span class="date-count">${group.meals.length} 餐</span>
+        </div>`;
+      group.meals.forEach(m => g.appendChild(buildCard(m)));
+      content.appendChild(g);
+    });
+  }
+
+  function buildCard(m) {
+    const card = document.createElement('div');
+    card.className = 'meal-card';
+
+    const starsHtml = '⭐'.repeat(m.stars) + '☆'.repeat(5 - m.stars);
+    const reactHtml = Object.entries(m.reactions).map(([e,c]) =>
+      `<span class="reaction" onclick="toggleReaction(this)">${e} <span>${c}</span></span>`
+    ).join('');
+    const commentsHtml = m.comments.map(c => `
+      <div class="comment-item">
+        <div class="comment-avatar" style="background:${c.color}">${c.name.slice(0,2)}</div>
+        <div><div class="comment-name">${esc(c.name)}</div><div class="comment-text">${esc(c.text)}</div></div>
+      </div>`).join('');
+
+    card.innerHTML = `
+      ${m.img ? `<img class="meal-img" src="${m.img}" alt="${esc(m.name)}"/>` : ''}
+      <div class="meal-body">
+        <div class="meal-top">
+          <span class="meal-name">${esc(m.name)}</span>
+          <span class="meal-time-badge">${m.type} · ${m.time}</span>
+        </div>
+        <div class="meal-meta">
+          ${m.place ? `<span class="meta-tag">📍 ${esc(m.place)}</span>` : ''}
+          ${m.price > 0 ? `<span class="meta-tag">💰 ¥${m.price}</span>` : '<span class="meta-tag">🏠 自制</span>'}
+          <span class="meta-tag">${starsHtml}</span>
+        </div>
+        ${m.note ? `<div class="meal-note">${esc(m.note)}</div>` : ''}
+        <div class="reactions">${reactHtml}</div>
+        <div class="comments">
+          ${commentsHtml}
+          <div class="comment-input-row">
+            <input class="comment-input" placeholder="留个评论..."/>
+            <button class="comment-send" onclick="addComment(this)">回复</button>
+          </div>
+        </div>
+      </div>`;
+    return card;
+  }
+
+  function toggleReaction(el) {
+    el.classList.toggle('active');
+    const span = el.querySelector('span');
+    span.textContent = parseInt(span.textContent) + (el.classList.contains('active') ? 1 : -1);
+  }
+
+  function addComment(btn) {
+    const input = btn.previousElementSibling;
+    const text = input.value.trim();
+    if (!text) return;
+    const row = btn.closest('.comment-input-row');
+    const item = document.createElement('div');
+    item.className = 'comment-item';
+    item.innerHTML = `
+      <div class="comment-avatar" style="background:var(--accent-orange)">我</div>
+      <div><div class="comment-name">我</div><div class="comment-text">${esc(text)}</div></div>`;
+    row.parentElement.insertBefore(item, row);
+    input.value = '';
+  }
+
+  function selectType(btn) {
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedType = btn.textContent.trim();
+  }
+
+  function setStar(n) {
+    selectedStar = n;
+    const stars = document.querySelectorAll('.star-sel');
+    stars.forEach((s,i) => s.textContent = i < n ? '⭐' : '☆');
+  }
+
+  function previewFoodImg(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      pendingImg = e.target.result;
+      const prev = document.getElementById('food-img-preview');
+      prev.src = pendingImg;
+      prev.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function openModal() { document.getElementById('modal').classList.add('show'); }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('show');
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-place').value = '';
+    document.getElementById('f-price').value = '';
+    document.getElementById('f-note').value = '';
+    pendingImg = null;
+    const prev = document.getElementById('food-img-preview');
+    prev.src = ''; prev.style.display = 'none';
+    setStar(5);
+  }
+  function closeOnOverlay(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+  function postMeal() {
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) { document.getElementById('f-name').focus(); return; }
+    const meal = {
+      name,
+      type: selectedType,
+      place: document.getElementById('f-place').value.trim(),
+      price: parseFloat(document.getElementById('f-price').value) || 0,
+      stars: selectedStar,
+      note: document.getElementById('f-note').value.trim(),
+      img: pendingImg,
+      time: new Date().toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit'}),
+      reactions: {},
+      comments: []
+    };
+
+    const content = document.getElementById('content');
+    let todayGroup = content.querySelector('.date-group');
+    if (!todayGroup || !todayGroup.querySelector('.date-label').textContent.includes('今天')) {
+      todayGroup = document.createElement('div');
+      todayGroup.className = 'date-group';
+      todayGroup.innerHTML = `<div class="date-header"><span class="date-label">今天</span><div class="date-line"></div><span class="date-count">0 餐</span></div>`;
+      content.insertBefore(todayGroup, content.firstChild);
+    }
+    todayGroup.appendChild(buildCard(meal));
+    const counter = todayGroup.querySelector('.date-count');
+    counter.textContent = (parseInt(counter.textContent) + 1) + ' 餐';
+    closeModal();
+    todayGroup.scrollIntoView({behavior:'smooth'});
+  }
+
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  renderAll(sampleData);
+</script>
+</body>
+</html>

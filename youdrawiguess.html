@@ -28,24 +28,36 @@ body{ font-family:"Microsoft YaHei",sans-serif; background:#050816; color:white;
 
 /* 画笔工具栏 */
 .toolbar{
-  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  display:flex; align-items:center; gap:10px;
   background:rgba(255,255,255,0.06); border-radius:14px; padding:10px 14px;
+  overflow-x:auto; flex-shrink:0; flex-wrap:nowrap;
 }
-.color-btn{
-  width:28px; height:28px; border-radius:50%; border:3px solid transparent;
-  cursor:pointer; transition:all 0.15s; flex-shrink:0;
+.toolbar-label{ font-size:12px; color:rgba(255,255,255,0.5); white-space:nowrap; flex-shrink:0; }
+#color-picker-input{
+  width:32px; height:32px; border-radius:50%; border:3px solid white;
+  cursor:pointer; padding:0; outline:none; overflow:hidden; flex-shrink:0;
 }
-.color-btn.active{ border-color:white; transform:scale(1.2); }
-.size-btn{
-  background:rgba(255,255,255,0.1); border:1.5px solid rgba(255,255,255,0.2);
-  color:white; border-radius:8px; padding:4px 10px; cursor:pointer; font-size:12px;
-  transition:all 0.15s;
+#color-picker-input::-webkit-color-swatch-wrapper{ padding:0; }
+#color-picker-input::-webkit-color-swatch{ border:none; border-radius:50%; }
+.size-slider-wrap{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.size-slider{
+  -webkit-appearance:none; appearance:none;
+  width:100px; height:5px; border-radius:4px;
+  background:rgba(255,255,255,0.2); outline:none; cursor:pointer;
 }
-.size-btn.active{ background:#00f7ff; color:#050816; border-color:#00f7ff; }
+.size-slider::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:18px; height:18px; border-radius:50%;
+  background:#00f7ff; cursor:pointer;
+  box-shadow:0 0 6px rgba(0,247,255,0.6);
+}
+.size-preview{
+  width:24px; height:24px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
 .eraser-btn{
   background:rgba(255,255,255,0.1); border:1.5px solid rgba(255,255,255,0.2);
-  color:white; border-radius:8px; padding:4px 12px; cursor:pointer; font-size:14px;
-  transition:all 0.15s; margin-left:auto;
+  color:white; border-radius:20px; padding:5px 14px; cursor:pointer; font-size:13px;
+  transition:all 0.15s; white-space:nowrap; flex-shrink:0;
 }
 .eraser-btn.active{ background:#ff5500; border-color:#ff5500; }
 
@@ -131,20 +143,14 @@ button:hover{ transform:translateY(-1px); opacity:0.9; }
     </div>
 
     <div class="toolbar" id="toolbar">
-      <div class="section-title" style="margin:0;font-size:12px">颜色：</div>
-      <!-- color swatches -->
-      <div class="color-btn active" style="background:#222222" data-color="#222222" onclick="setColor(this)"></div>
-      <div class="color-btn" style="background:#e74c3c" data-color="#e74c3c" onclick="setColor(this)"></div>
-      <div class="color-btn" style="background:#e67e22" data-color="#e67e22" onclick="setColor(this)"></div>
-      <div class="color-btn" style="background:#f1c40f" data-color="#f1c40f" onclick="setColor(this)"></div>
-      <div class="color-btn" style="background:#2ecc71" data-color="#2ecc71" onclick="setColor(this)"></div>
-      <div class="color-btn" style="background:#3498db" data-color="#3498db" onclick="setColor(this)"></div>
-      <div class="color-btn" style="background:#9b59b6" data-color="#9b59b6" onclick="setColor(this)"></div>
-      <div class="color-btn" style="background:#ffffff;border:1px solid #aaa" data-color="#ffffff" onclick="setColor(this)"></div>
-      <div class="section-title" style="margin:0 4px 0 8px;font-size:12px">粗细：</div>
-      <button class="size-btn active" data-size="4" onclick="setSize(this)">细</button>
-      <button class="size-btn" data-size="10" onclick="setSize(this)">中</button>
-      <button class="size-btn" data-size="20" onclick="setSize(this)">粗</button>
+      <span class="toolbar-label">颜色：</span>
+      <input type="color" id="color-picker-input" value="#222222" oninput="setColorPicker(this.value)" title="点击选颜色"/>
+      <span class="toolbar-label">粗细：</span>
+      <div class="size-slider-wrap">
+        <div class="size-preview" id="size-preview"><div style="background:#00f7ff;border-radius:50%;width:4px;height:4px"></div></div>
+        <input type="range" class="size-slider" id="size-slider" min="1" max="30" value="4" oninput="setSizeSlider(this.value)"/>
+        <div class="size-preview" id="size-preview-big"><div style="background:#00f7ff;border-radius:50%;width:16px;height:16px"></div></div>
+      </div>
       <button class="eraser-btn" id="eraser-btn" onclick="toggleEraser()">🧹 橡皮</button>
     </div>
 
@@ -252,18 +258,17 @@ resizeCanvas();
 window.addEventListener("resize", () => { saveCanvasState(); resizeCanvas(); });
 
 // ── 工具 ──
-function setColor(el) {
+function setColorPicker(val) {
   eraserOn = false;
   document.getElementById("eraser-btn").classList.remove("active");
-  document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
-  el.classList.add("active");
-  penColor = el.dataset.color;
+  penColor = val;
 }
 
-function setSize(el) {
-  document.querySelectorAll(".size-btn").forEach(b => b.classList.remove("active"));
-  el.classList.add("active");
-  penSize = parseInt(el.dataset.size);
+function setSizeSlider(val) {
+  penSize = parseInt(val);
+  const preview = document.getElementById("size-preview");
+  const sz = Math.max(4, Math.min(penSize, 24));
+  preview.innerHTML = `<div style="background:#00f7ff;border-radius:50%;width:${sz}px;height:${sz}px"></div>`;
 }
 
 function toggleEraser() {

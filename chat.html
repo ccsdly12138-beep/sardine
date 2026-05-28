@@ -16,7 +16,6 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:var(--cream); font-family:'Noto Sans SC',sans-serif; color:var(--text-dark); height:100vh; display:flex; overflow:hidden; }
 
-  /* sidebar */
   .sidebar { width:220px; flex-shrink:0; background:white; border-right:2px dashed rgba(240,125,58,0.2); display:flex; flex-direction:column; }
   .sidebar-top { padding:1rem; border-bottom:1.5px dashed var(--warm); }
   .sidebar-logo { font-family:'Caveat',cursive; font-size:1.3rem; font-weight:700; color:var(--accent-orange); display:flex; align-items:center; gap:6px; margin-bottom:8px; }
@@ -24,7 +23,7 @@
   .my-avatar { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:'Caveat',cursive; font-size:0.85rem; font-weight:700; color:white; flex-shrink:0; }
   .my-name { font-family:'Caveat',cursive; font-size:1rem; font-weight:600; color:var(--text-dark); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .logout-btn { background:none; border:none; font-size:0.8rem; color:var(--text-light); cursor:pointer; padding:2px 6px; border-radius:6px; transition:all 0.2s; }
-  .logout-btn:hover { color:var(--accent-pink); background:rgba(240,107,138,0.1); }
+  .logout-btn:hover { color:var(--accent-pink); }
 
   .sidebar-section { padding:10px 12px 4px; font-family:'Caveat',cursive; font-size:0.9rem; color:var(--text-light); }
 
@@ -33,20 +32,18 @@
   .room-item.active { background:rgba(240,125,58,0.12); }
   .room-icon { font-size:1.1rem; }
   .room-name { font-family:'Caveat',cursive; font-size:1rem; color:var(--text-dark); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .room-unread { background:var(--accent-orange); color:white; font-size:0.65rem; padding:1px 6px; border-radius:8px; font-weight:600; }
 
   .members-list { flex:1; overflow-y:auto; }
   .member-item { display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; border-radius:10px; margin:2px 6px; transition:all 0.2s; }
   .member-item:hover { background:var(--cream2); }
+  .member-item.active { background:rgba(240,125,58,0.12); }
   .member-avatar { width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-family:'Caveat',cursive; font-size:0.75rem; font-weight:700; color:white; flex-shrink:0; }
   .member-name { font-family:'Caveat',cursive; font-size:1rem; color:var(--text-dark); flex:1; }
   .online-dot { width:7px; height:7px; border-radius:50%; background:var(--accent-green); flex-shrink:0; }
 
-  /* main chat */
   .main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-
   .topbar { background:rgba(253,246,236,0.95); backdrop-filter:blur(10px); border-bottom:2px dashed rgba(240,125,58,0.25); padding:0 1.2rem; height:52px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-  .chat-title { font-family:'Caveat',cursive; font-size:1.2rem; font-weight:700; display:flex; align-items:center; gap:6px; }
+  .chat-title { font-family:'Caveat',cursive; font-size:1.2rem; font-weight:700; }
   .back-home { font-family:'Caveat',cursive; font-size:0.95rem; color:var(--accent-orange); text-decoration:none; padding:4px 10px; border-radius:10px; transition:background 0.2s; }
   .back-home:hover { background:rgba(240,125,58,0.1); }
 
@@ -92,7 +89,6 @@
 </head>
 <body>
 
-<!-- sidebar -->
 <div class="sidebar">
   <div class="sidebar-top">
     <div class="sidebar-logo">🐟 沙丁鱼</div>
@@ -102,30 +98,23 @@
       <button class="logout-btn" onclick="logout()">退出</button>
     </div>
   </div>
-
   <div class="sidebar-section">频道</div>
-  <div class="room-item active" id="room-public" onclick="switchRoom('public','🐟 大家一起聊')">
+  <div class="room-item active" id="nav-public" onclick="switchRoom('public','🐟 大家一起聊')">
     <span class="room-icon">🐟</span>
     <span class="room-name">大家一起聊</span>
   </div>
-
   <div class="sidebar-section">私聊成员</div>
   <div class="members-list" id="members-list">
-    <div class="sys-msg" style="font-size:0.8rem;padding:8px">加载成员中...</div>
+    <div class="sys-msg" style="font-size:0.8rem;padding:8px">加载中...</div>
   </div>
 </div>
 
-<!-- main -->
 <div class="main">
   <div class="topbar">
     <div class="chat-title" id="chat-title">🐟 大家一起聊</div>
     <a href="index.html" class="back-home">← 回首页</a>
   </div>
-
-  <div class="messages" id="messages">
-    <div class="sys-msg">🐟 欢迎来到沙丁鱼聊天室～</div>
-  </div>
-
+  <div class="messages" id="messages"></div>
   <div class="input-area">
     <div class="emoji-picker" id="emoji-picker">
       <button class="emoji-btn" onclick="insertEmoji('😂')">😂</button>
@@ -150,7 +139,8 @@
       <input type="file" id="img-input" accept="image/*" onchange="previewImg(this)"/>
     </div>
     <div class="input-row">
-      <textarea class="msg-input" id="msg-input" placeholder="说点什么..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <textarea class="msg-input" id="msg-input" placeholder="说点什么..." rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button class="send-btn" onclick="sendMsg()">➤</button>
     </div>
   </div>
@@ -179,15 +169,15 @@
     const d = ts ? new Date(ts) : new Date();
     return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
   }
-
-  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function scrollBottom() { const m=document.getElementById('messages'); setTimeout(()=>m.scrollTop=m.scrollHeight,50); }
 
   async function init() {
-    const { data: { session } } = await db.auth.getSession();
-    if (!session) { window.location.href = 'auth.html'; return; }
+    const { data:{ session } } = await db.auth.getSession();
+    if (!session) { window.location.href='auth.html'; return; }
     myUser = session.user;
 
-    const { data: profile } = await db.from('profiles').select('nickname').eq('user_id', myUser.id).single();
+    const { data:profile } = await db.from('profiles').select('nickname').eq('user_id', myUser.id).single();
     myNickname = profile?.nickname || myUser.email.split('@')[0];
 
     const color = getColor(myNickname);
@@ -196,22 +186,24 @@
     document.getElementById('my-name').textContent = myNickname;
 
     await loadMembers();
-    await loadMessages();
-    subscribeRealtime();
+    await switchRoom('public', '🐟 大家一起聊');
   }
 
   async function loadMembers() {
     const { data } = await db.from('profiles').select('user_id, nickname');
     const list = document.getElementById('members-list');
     list.innerHTML = '';
-    if (!data) return;
+    if (!data || data.length === 0) {
+      list.innerHTML = '<div class="sys-msg" style="font-size:0.8rem;padding:8px">暂无其他成员</div>';
+      return;
+    }
     data.forEach(p => {
       if (p.user_id === myUser.id) return;
       const roomId = [myUser.id, p.user_id].sort().join('_');
+      const color = getColor(p.nickname);
       const item = document.createElement('div');
       item.className = 'member-item';
-      item.id = 'member-' + p.user_id;
-      const color = getColor(p.nickname);
+      item.dataset.roomId = roomId;
       item.innerHTML = `
         <div class="member-avatar" style="background:${color}">${p.nickname.slice(0,2)}</div>
         <span class="member-name">${esc(p.nickname)}</span>
@@ -221,35 +213,81 @@
     });
   }
 
-  async function loadMessages() {
-    const msgs = document.getElementById('messages');
-    msgs.innerHTML = '<div class="sys-msg">🐟 欢迎来到沙丁鱼聊天室～</div>';
-    const { data } = await db.from('messages').select('*').eq('room', currentRoom).order('created_at', { ascending: true }).limit(100);
-    if (data) data.forEach(m => renderMsg(m, m.nickname === myNickname));
-  }
-
-  function switchRoom(roomId, title) {
+  async function switchRoom(roomId, title) {
     currentRoom = roomId;
     document.getElementById('chat-title').textContent = title;
+
+    // 更新高亮
     document.querySelectorAll('.room-item, .member-item').forEach(el => el.classList.remove('active'));
-    const el = document.getElementById('room-' + roomId) || document.querySelector(`[onclick*="${roomId}"]`);
-    if (el) el.classList.add('active');
-    if (realtimeChannel) db.removeChannel(realtimeChannel);
-    loadMessages();
-    subscribeRealtime();
+    if (roomId === 'public') {
+      document.getElementById('nav-public').classList.add('active');
+    } else {
+      const el = document.querySelector(`[data-room-id="${roomId}"]`);
+      if (el) el.classList.add('active');
+    }
+
+    // 取消旧的实时订阅
+    if (realtimeChannel) {
+      await db.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+
+    // 加载历史消息
+    await loadMessages(roomId);
+
+    // 开启新的实时订阅
+    subscribeRealtime(roomId);
   }
 
-  function subscribeRealtime() {
-    realtimeChannel = db.channel('room-' + currentRoom)
-      .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages', filter:`room=eq.${currentRoom}` }, payload => {
+  async function loadMessages(roomId) {
+    const msgs = document.getElementById('messages');
+    msgs.innerHTML = '<div class="sys-msg">加载消息中...</div>';
+
+    const { data, error } = await db
+      .from('messages')
+      .select('*')
+      .eq('room', roomId)
+      .order('created_at', { ascending: true })
+      .limit(100);
+
+    msgs.innerHTML = '';
+
+    if (error) {
+      msgs.innerHTML = '<div class="sys-msg">加载失败，请刷新重试</div>';
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      msgs.innerHTML = '<div class="sys-msg">还没有消息，来说点什么吧 🐟</div>';
+      return;
+    }
+
+    data.forEach(m => renderMsg(m, m.nickname === myNickname));
+    scrollBottom();
+  }
+
+  function subscribeRealtime(roomId) {
+    realtimeChannel = db.channel('room_' + roomId)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages'
+      }, payload => {
         const msg = payload.new;
-        if (msg.nickname !== myNickname) renderMsg(msg, false);
+        // 只处理当前房间的消息，且不是自己发的（自己发的已经乐观渲染了）
+        if (msg.room === currentRoom && msg.nickname !== myNickname) {
+          renderMsg(msg, false);
+        }
       })
       .subscribe();
   }
 
   function renderMsg(msg, isSelf) {
     const msgs = document.getElementById('messages');
+    // 如果只有"还没有消息"提示，先清空
+    const sysMsgs = msgs.querySelectorAll('.sys-msg');
+    if (sysMsgs.length === 1 && msgs.children.length === 1) msgs.innerHTML = '';
+
     const row = document.createElement('div');
     row.className = 'msg-row ' + (isSelf ? 'self' : 'other');
     const color = getColor(msg.nickname);
@@ -268,17 +306,29 @@
         <div class="bubble-time">${getTime(msg.created_at)}</div>
       </div>`;
     msgs.appendChild(row);
-    setTimeout(() => msgs.scrollTop = msgs.scrollHeight, 50);
+    scrollBottom();
   }
 
   async function sendMsg() {
     const input = document.getElementById('msg-input');
     const text = input.value.trim();
     if (!text && !pendingImg) return;
-    const msgData = { nickname: myNickname, content: text, img_url: pendingImg || null, room: currentRoom };
+
+    const msgData = {
+      nickname: myNickname,
+      content: text,
+      img_url: pendingImg || null,
+      room: currentRoom
+    };
+
+    // 乐观渲染（先显示，再存数据库）
     renderMsg({ ...msgData, created_at: new Date().toISOString() }, true);
-    input.value = ''; input.style.height = 'auto'; removeImg();
-    await db.from('messages').insert(msgData);
+    input.value = '';
+    input.style.height = 'auto';
+    removeImg();
+
+    const { error } = await db.from('messages').insert(msgData);
+    if (error) console.error('发送失败:', error);
   }
 
   async function logout() {
@@ -286,14 +336,14 @@
     window.location.href = 'auth.html';
   }
 
-  function handleKey(e) { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } }
+  function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
   function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,90)+'px'; }
   function toggleEmoji() { document.getElementById('emoji-picker').classList.toggle('show'); }
   function insertEmoji(e) { document.getElementById('msg-input').value+=e; document.getElementById('emoji-picker').classList.remove('show'); }
   function previewImg(input) {
-    const file = input.files[0]; if(!file) return;
-    const reader = new FileReader();
-    reader.onload = e => { pendingImg=e.target.result; document.getElementById('img-preview').src=pendingImg; document.getElementById('img-preview-wrap').classList.add('show'); };
+    const file=input.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=e=>{ pendingImg=e.target.result; document.getElementById('img-preview').src=pendingImg; document.getElementById('img-preview-wrap').classList.add('show'); };
     reader.readAsDataURL(file);
   }
   function removeImg() { pendingImg=null; document.getElementById('img-preview-wrap').classList.remove('show'); document.getElementById('img-input').value=''; }

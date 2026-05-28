@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 · 沙丁鱼</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --cream:#fdf6ec; --cream2:#faefd8; --warm:#f5e6c8;
+    --accent-orange:#f07d3a; --accent-pink:#f06b8a;
+    --accent-green:#5bba8a; --text-dark:#2d2416;
+    --text-mid:#6b5740; --text-light:#a89070;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--cream); font-family:'Noto Sans SC',sans-serif; color:var(--text-dark); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1rem; }
+
+  .card { background:white; border-radius:24px; padding:2rem; width:100%; max-width:400px; box-shadow:0 10px 40px rgba(0,0,0,0.08); border:1.5px solid var(--warm); }
+
+  .logo { text-align:center; margin-bottom:1.5rem; }
+  .logo-fish { font-size:2.5rem; display:block; animation:fishwag 2s ease-in-out infinite; }
+  @keyframes fishwag { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} }
+  .logo-title { font-family:'Caveat',cursive; font-size:2rem; font-weight:700; color:var(--accent-orange); }
+  .logo-sub { font-family:'Caveat',cursive; font-size:1rem; color:var(--text-light); }
+
+  .tabs { display:flex; border-radius:14px; background:var(--cream2); padding:4px; margin-bottom:1.5rem; gap:4px; }
+  .tab { flex:1; font-family:'Caveat',cursive; font-size:1.1rem; border:none; background:none; border-radius:10px; padding:8px; cursor:pointer; color:var(--text-mid); transition:all 0.2s; }
+  .tab.active { background:white; color:var(--accent-orange); box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+
+  .form-row { margin-bottom:12px; }
+  .form-label { font-family:'Caveat',cursive; font-size:1rem; color:var(--text-mid); margin-bottom:4px; display:block; }
+  .form-input { width:100%; font-family:'Noto Sans SC',sans-serif; font-size:0.92rem; border:2px solid var(--warm); border-radius:12px; padding:10px 14px; outline:none; color:var(--text-dark); transition:border-color 0.2s; background:white; }
+  .form-input:focus { border-color:var(--accent-orange); }
+
+  .submit-btn { width:100%; font-family:'Caveat',cursive; font-size:1.2rem; background:var(--accent-orange); color:white; border:none; border-radius:14px; padding:12px; cursor:pointer; transition:all 0.2s; margin-top:4px; box-shadow:0 4px 12px rgba(240,125,58,0.3); }
+  .submit-btn:hover { opacity:0.88; transform:translateY(-1px); }
+
+  .msg { text-align:center; font-family:'Caveat',cursive; font-size:1rem; margin-top:10px; padding:8px; border-radius:10px; display:none; }
+  .msg.error { background:#ffeef3; color:#b8456a; display:block; }
+  .msg.success { background:#eef8f3; color:#2e8a5e; display:block; }
+
+  .panel { display:none; }
+  .panel.active { display:block; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <span class="logo-fish">🐟</span>
+    <div class="logo-title">沙丁鱼</div>
+    <div class="logo-sub">登录后才能进入小圈子</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('login')">登录</button>
+    <button class="tab" onclick="switchTab('register')">注册</button>
+  </div>
+
+  <!-- 登录 -->
+  <div class="panel active" id="panel-login">
+    <div class="form-row">
+      <label class="form-label">邮箱</label>
+      <input class="form-input" id="login-email" type="email" placeholder="your@email.com"/>
+    </div>
+    <div class="form-row">
+      <label class="form-label">密码</label>
+      <input class="form-input" id="login-password" type="password" placeholder="输入密码"/>
+    </div>
+    <button class="submit-btn" onclick="login()">登录 →</button>
+    <div class="msg" id="login-msg"></div>
+  </div>
+
+  <!-- 注册 -->
+  <div class="panel" id="panel-register">
+    <div class="form-row">
+      <label class="form-label">昵称</label>
+      <input class="form-input" id="reg-nickname" placeholder="起个好听的名字" maxlength="12"/>
+    </div>
+    <div class="form-row">
+      <label class="form-label">邮箱</label>
+      <input class="form-input" id="reg-email" type="email" placeholder="your@email.com"/>
+    </div>
+    <div class="form-row">
+      <label class="form-label">密码（至少6位）</label>
+      <input class="form-input" id="reg-password" type="password" placeholder="设置密码"/>
+    </div>
+    <button class="submit-btn" onclick="register()">注册 →</button>
+    <div class="msg" id="reg-msg"></div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://sheythvfvmvwzvgvvwvm.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoZXl0aHZmdm12d3p2Z3Z2d3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NDQzOTEsImV4cCI6MjA5NTQyMDM5MX0.wXOO4uyVhVeKlCQ2tyoyxdU0lWrYQRA2tQD4ho89iCo';
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+    document.getElementById('panel-login').classList.toggle('active', tab==='login');
+    document.getElementById('panel-register').classList.toggle('active', tab==='register');
+  }
+
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'msg ' + type;
+  }
+
+  async function register() {
+    const nickname = document.getElementById('reg-nickname').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!nickname || !email || !password) { showMsg('reg-msg','请填写所有字段','error'); return; }
+    if (password.length < 6) { showMsg('reg-msg','密码至少6位','error'); return; }
+
+    const { data, error } = await db.auth.signUp({ email, password });
+    if (error) { showMsg('reg-msg', error.message, 'error'); return; }
+
+    await db.from('profiles').insert({ user_id: data.user.id, nickname });
+    showMsg('reg-msg','注册成功！正在跳转...','success');
+    setTimeout(() => window.location.href = 'chat.html', 1200);
+  }
+
+  async function login() {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) { showMsg('login-msg','请填写邮箱和密码','error'); return; }
+
+    const { error } = await db.auth.signInWithPassword({ email, password });
+    if (error) { showMsg('login-msg','邮箱或密码错误','error'); return; }
+
+    showMsg('login-msg','登录成功！正在跳转...','success');
+    setTimeout(() => window.location.href = 'chat.html', 1000);
+  }
+
+  // 已登录直接跳转
+  db.auth.getSession().then(({ data }) => {
+    if (data.session) window.location.href = 'chat.html';
+  });
+</script>
+</body>
+</html>

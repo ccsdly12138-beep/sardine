@@ -4,179 +4,249 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Supabase Snake.io</title>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-html,body{
-margin:0;
-overflow:hidden;
-background:#000;
-touch-action:none;
-}
-canvas{position:absolute;top:0;left:0;}
+html,body{ margin:0; overflow:hidden; background:#0000000f; touch-action:none; }
+canvas{ position:absolute; top:0; left:0; }
 #ui{
-position:fixed;
-top:10px;
-left:10px;
-color:#0f0;
-font-family:Arial;
-z-index:10;
+  position:fixed; top:10px; left:10px;
+  color:rgb(145, 236, 145); font-family:Arial; font-size:14px; z-index:10;
+  background:rgba(234, 137, 137, 0.5); padding:8px 12px; border-radius:8px;
+}
+#scoreboard{
+  position:fixed; top:10px; right:10px;
+  color:#fff; font-family:Arial; font-size:13px; z-index:10;
+  background:rgba(0,0,0,0.6); padding:8px 12px; border-radius:8px;
+  min-width:140px;
+}
+#scoreboard h3{ color:rgb(186, 232, 94); margin:0 0 6px; font-size:13px; }
+#gameover{
+  display:none; position:fixed; inset:0;
+  background:rgba(150, 148, 181, 0.7); z-index:20;
+  align-items:center; justify-content:center; flex-direction:column; gap:16px;
+}
+#gameover.show{ display:flex; }
+#gameover h2{ color:#f00; font-family:Arial; font-size:2rem; }
+#gameover button{
+  background:rgb(156, 219, 156); color:#e4a0a0; border:none; border-radius:8px;
+  padding:10px 28px; font-size:1rem; cursor:pointer; font-weight:bold;
 }
 </style>
 </head>
-
 <body>
-
 <canvas id="c"></canvas>
-<div id="ui">🐍 Multiplayer Snake.io</div>
+<div id="ui">🐍 Multiplayer Snake.io<br/><span id="my-score">分数：0</span></div>
+<div id="scoreboard"><h3>🏆 排行榜</h3><div id="score-list"></div></div>
+<div id="gameover" class=""><h2>💀 游戏结束</h2><button onclick="respawn()">重新开始</button></div>
 
 <script>
+/* ── CONFIG ── */
+const SUPABASE_URL = "https://sheythvfvmvwzvgvvwvm.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoZXl0aHZmdm12d3p2Z3Z2d3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NDQzOTEsImV4cCI6MjA5NTQyMDM5MX0.wXOO4uyVhVeKlCQ2tyoyxdU0lWrYQRA2tQD4ho89iCo";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ================= CONFIG ================= */
-const supabaseUrl = "https://ccsdly12138-beep.github.io/sardine/youdrawiguess.html";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoZXl0aHZmdm12d3p2Z3Z2d3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NDQzOTEsImV4cCI6MjA5NTQyMDM5MX0.wXOO4uyVhVeKlCQ2tyoyxdU0lWrYQRA2tQD4ho89iCo";
-const sb = supabase.createClient(supabaseUrl, supabaseKey);
-
-/* ================= ROOM ================= */
+const GRID = 10;
 const roomId = new URLSearchParams(location.search).get("room") || "room-1";
 
-/* ================= CANVAS ================= */
+/* ── CANVAS ── */
 const c = document.getElementById("c");
 const ctx = c.getContext("2d");
 c.width = innerWidth;
 c.height = innerHeight;
+window.addEventListener("resize", () => { c.width = innerWidth; c.height = innerHeight; });
 
-/* ================= PLAYER ================= */
-const id = Math.random().toString(36).slice(2);
+/* ── PLAYER ── */
+const myId = Math.random().toString(36).slice(2);
+const myName = "P" + Math.floor(Math.random() * 999);
 
-let me = {
-id,
-room_id: roomId,
-name: "P" + Math.floor(Math.random()*999),
-x: 200,
-y: 200,
-dir: "RIGHT",
-body: [{x:200,y:200}],
-score: 0,
-alive: true
-};
+const COLORS = ["#0f0","#0ff","#ff0","#f80","#f0f","#8f0"];
+const myColor = COLORS[Math.floor(Math.random() * COLORS.length)];
 
+function makeMe() {
+  const sx = Math.floor(Math.random() * (c.width / GRID - 10) + 5) * GRID;
+  const sy = Math.floor(Math.random() * (c.height / GRID - 10) + 5) * GRID;
+  return {
+    id: myId, room_id: roomId, name: myName, color: myColor,
+    x: sx, y: sy, dir: "RIGHT",
+    body: [{x:sx,y:sy},{x:sx-GRID,y:sy},{x:sx-GRID*2,y:sy}],
+    score: 0, alive: true
+  };
+}
+
+let me = makeMe();
 let players = {};
+let food = randomFood();
+let gameRunning = true;
 
-/* ================= FOOD ================= */
-let food = {
-x: Math.floor(Math.random()*50)*10,
-y: Math.floor(Math.random()*50)*10
-};
+function randomFood() {
+  return {
+    x: Math.floor(Math.random() * (c.width / GRID)) * GRID,
+    y: Math.floor(Math.random() * (c.height / GRID)) * GRID
+  };
+}
 
-/* ================= INPUT ================= */
-document.addEventListener("keydown",e=>{
-if(e.key==="ArrowUp")me.dir="UP";
-if(e.key==="ArrowDown")me.dir="DOWN";
-if(e.key==="ArrowLeft")me.dir="LEFT";
-if(e.key==="ArrowRight")me.dir="RIGHT";
+/* ── INPUT ── */
+const dirMap = { ArrowUp:"UP", ArrowDown:"DOWN", ArrowLeft:"LEFT", ArrowRight:"RIGHT" };
+const opposite = { UP:"DOWN", DOWN:"UP", LEFT:"RIGHT", RIGHT:"LEFT" };
+let nextDir = me.dir;
+
+document.addEventListener("keydown", e => {
+  if (dirMap[e.key]) {
+    e.preventDefault();
+    const d = dirMap[e.key];
+    if (d !== opposite[me.dir]) nextDir = d;
+  }
 });
 
-/* ================= TOUCH ================= */
-let sx,sy;
-document.addEventListener("touchstart",e=>{
-sx=e.touches[0].clientX;
-sy=e.touches[0].clientY;
+let sx, sy;
+document.addEventListener("touchstart", e => { sx=e.touches[0].clientX; sy=e.touches[0].clientY; }, {passive:true});
+document.addEventListener("touchend", e => {
+  const dx = e.changedTouches[0].clientX - sx;
+  const dy = e.changedTouches[0].clientY - sy;
+  let d;
+  if (Math.abs(dx) > Math.abs(dy)) d = dx > 0 ? "RIGHT" : "LEFT";
+  else d = dy > 0 ? "DOWN" : "UP";
+  if (d !== opposite[me.dir]) nextDir = d;
 });
 
-document.addEventListener("touchend",e=>{
-let dx=e.changedTouches[0].clientX-sx;
-let dy=e.changedTouches[0].clientY-sy;
+/* ── MOVE ── */
+function moveSnake() {
+  if (!me.alive) return;
+  me.dir = nextDir;
+  const head = { ...me.body[0] };
+  if (me.dir === "RIGHT") head.x += GRID;
+  if (me.dir === "LEFT")  head.x -= GRID;
+  if (me.dir === "UP")    head.y -= GRID;
+  if (me.dir === "DOWN")  head.y += GRID;
 
-if(Math.abs(dx)>Math.abs(dy)){
-me.dir = dx>0?"RIGHT":"LEFT";
-}else{
-me.dir = dy>0?"DOWN":"UP";
-}
-});
+  // 撞墙
+  if (head.x < 0 || head.x >= c.width || head.y < 0 || head.y >= c.height) {
+    die(); return;
+  }
 
-/* ================= MOVE ================= */
-function move(p){
-let h = {...p.body[0]};
+  // 撞自己
+  if (me.body.some(b => b.x === head.x && b.y === head.y)) {
+    die(); return;
+  }
 
-if(p.dir==="RIGHT")h.x+=10;
-if(p.dir==="LEFT")h.x-=10;
-if(p.dir==="UP")h.y-=10;
-if(p.dir==="DOWN")h.y+=10;
+  me.body.unshift(head);
+  me.x = head.x;
+  me.y = head.y;
 
-p.body.unshift(h);
-p.body.pop();
-
-p.x = h.x;
-p.y = h.y;
-}
-
-/* ================= COLLISION ================= */
-function hit(a,b){
-return a.x===b.x && a.y===b.y;
-}
-
-/* ================= SYNC ================= */
-async function sync(){
-await sb.from("players").upsert(me);
+  // 吃食物 → 不 pop（蛇变长）
+  if (head.x === food.x && head.y === food.y) {
+    me.score++;
+    food = randomFood();
+    document.getElementById("my-score").textContent = "分数：" + me.score;
+  } else {
+    me.body.pop(); // 没吃到才 pop
+  }
 }
 
-/* ================= REALTIME ================= */
-sb.channel("game")
-.on("postgres_changes",
-{event:"*",schema:"public",table:"players"},
-payload=>{
-let p = payload.new;
-if(p.room_id===roomId){
-players[p.id]=p;
-}
-})
-.subscribe();
-
-/* ================= LOOP ================= */
-function loop(){
-
-ctx.clearRect(0,0,c.width,c.height);
-
-move(me);
-
-/* eat food */
-if(hit(me.body[0],food)){
-me.score++;
-food = {
-x: Math.floor(Math.random()*c.width/10)*10,
-y: Math.floor(Math.random()*c.height/10)*10
-};
-}else{
-me.body.pop();
+function die() {
+  me.alive = false;
+  gameRunning = false;
+  document.getElementById("gameover").classList.add("show");
 }
 
-sync();
+function respawn() {
+  document.getElementById("gameover").classList.remove("show");
+  me = makeMe();
+  nextDir = me.dir;
+  food = randomFood();
+  gameRunning = true;
+}
 
-/* draw food */
-ctx.fillStyle="red";
-ctx.fillRect(food.x,food.y,10,10);
+/* ── SYNC ── */
+async function sync() {
+  const payload = {
+    id: me.id, room_id: me.room_id, name: me.name, color: me.color,
+    x: me.x, y: me.y, dir: me.dir,
+    body: me.body,
+    score: me.score, alive: me.alive
+  };
+  await sb.from("players").upsert(payload);
+}
 
-/* draw players */
-Object.values(players).forEach(p=>{
-if(!p.body)return;
+/* ── REALTIME ── */
+sb.channel("snake-game-" + roomId)
+  .on("postgres_changes", { event:"*", schema:"public", table:"players" }, payload => {
+    const p = payload.new;
+    if (p && p.room_id === roomId && p.id !== myId) {
+      players[p.id] = p;
+    }
+  })
+  .subscribe();
 
-ctx.fillStyle = p.id===me.id ? "#0f0" : "#f0f";
+/* ── DRAW ── */
+function draw() {
+  ctx.fillStyle = "#0a0a0a";
+  ctx.fillRect(0, 0, c.width, c.height);
 
-p.body.forEach(b=>{
-ctx.fillRect(b.x,b.y,10,10);
-});
+  // 网格
+  ctx.strokeStyle = "rgba(255,255,255,0.04)";
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < c.width; x += GRID) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,c.height); ctx.stroke(); }
+  for (let y = 0; y < c.height; y += GRID) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(c.width,y); ctx.stroke(); }
 
-ctx.fillText(p.name,p.x,p.y-10);
-});
+  // 食物
+  ctx.fillStyle = "#f00";
+  ctx.shadowColor = "#f00";
+  ctx.shadowBlur = 10;
+  ctx.fillRect(food.x+1, food.y+1, GRID-2, GRID-2);
+  ctx.shadowBlur = 0;
+
+  // 自己
+  drawSnake(me, me.color);
+
+  // 其他玩家
+  Object.values(players).forEach(p => {
+    if (!p.body || !p.alive) return;
+    drawSnake(p, p.color || "#f0f");
+  });
+
+  // 排行榜
+  const all = [me, ...Object.values(players).filter(p=>p.alive)];
+  all.sort((a,b) => b.score - a.score);
+  document.getElementById("score-list").innerHTML = all.slice(0,8).map((p,i) =>
+    `<div style="color:${p.color||'#fff'}">${i+1}. ${p.name} — ${p.score}</div>`
+  ).join('');
+}
+
+function drawSnake(p, color) {
+  if (!p.body) return;
+  p.body.forEach((seg, i) => {
+    ctx.fillStyle = i === 0 ? color : color + "99";
+    ctx.shadowColor = i === 0 ? color : "transparent";
+    ctx.shadowBlur = i === 0 ? 8 : 0;
+    ctx.fillRect(seg.x+1, seg.y+1, GRID-2, GRID-2);
+  });
+  ctx.shadowBlur = 0;
+
+  // 名字
+  ctx.fillStyle = color;
+  ctx.font = "bold 11px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(p.name, p.body[0].x + GRID/2, p.body[0].y - 4);
+}
+
+/* ── GAME LOOP ── */
+let lastMove = 0;
+const SPEED = 100; // ms per tick
+
+function loop(ts) {
+  if (ts - lastMove > SPEED) {
+    if (gameRunning) {
+      moveSnake();
+      sync();
+    }
+    lastMove = ts;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
 
 requestAnimationFrame(loop);
-}
-
-loop();
-
 </script>
-
 </body>
 </html>

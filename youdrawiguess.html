@@ -1,0 +1,820 @@
+```html
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>联机你画我猜</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:"Microsoft YaHei";
+    background:#050816;
+    color:white;
+    overflow:hidden;
+}
+
+/* 粒子背景 */
+
+#bg{
+    position:fixed;
+    inset:0;
+    z-index:0;
+}
+
+/* 主布局 */
+
+.container{
+    position:relative;
+    z-index:1;
+    display:flex;
+    height:100vh;
+    padding:20px;
+    gap:20px;
+}
+
+/* 左边 */
+
+.left{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+}
+
+.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.logo{
+    font-size:38px;
+    color:#00f7ff;
+    font-weight:bold;
+    text-shadow:
+        0 0 10px #00f7ff,
+        0 0 30px #00f7ff;
+}
+
+.timer{
+    padding:12px 24px;
+    border-radius:20px;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.1);
+    font-size:24px;
+}
+
+/* 画板 */
+
+#board{
+    flex:1;
+    background:white;
+    border-radius:30px;
+    cursor:crosshair;
+    box-shadow:
+        0 0 30px rgba(0,247,255,0.5);
+}
+
+/* 右边 */
+
+.right{
+    width:360px;
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(20px);
+    border-radius:30px;
+    padding:20px;
+    overflow-y:auto;
+}
+
+.section{
+    margin-bottom:25px;
+}
+
+.title{
+    font-size:20px;
+    margin-bottom:10px;
+    color:#00f7ff;
+}
+
+.word{
+    padding:18px;
+    background:rgba(0,247,255,0.1);
+    border-radius:20px;
+    text-align:center;
+    font-size:28px;
+    font-weight:bold;
+}
+
+input{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:15px;
+    margin-top:10px;
+    background:rgba(255,255,255,0.08);
+    color:white;
+    font-size:16px;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:15px;
+    margin-top:10px;
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    transform:translateY(-2px);
+}
+
+.join{
+    background:linear-gradient(45deg,#00f7ff,#0077ff);
+}
+
+.start{
+    background:linear-gradient(45deg,#00ff88,#00aa55);
+}
+
+.clear{
+    background:linear-gradient(45deg,#ff0055,#ff5500);
+}
+
+.message{
+    margin-top:10px;
+    text-align:center;
+    font-size:20px;
+    min-height:30px;
+}
+
+.chat{
+    height:220px;
+    overflow-y:auto;
+    background:rgba(255,255,255,0.05);
+    border-radius:20px;
+    padding:15px;
+}
+
+.msg{
+    margin-bottom:10px;
+}
+
+.scoreboard{
+    background:rgba(255,255,255,0.05);
+    border-radius:20px;
+    padding:15px;
+}
+
+.player{
+    display:flex;
+    justify-content:space-between;
+    padding:10px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.emoji-list{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+}
+
+.emoji-btn{
+    font-size:28px;
+}
+
+</style>
+</head>
+
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="container">
+
+    <div class="left">
+
+        <div class="top">
+
+            <div class="logo">
+                🎨 联机你画我猜
+            </div>
+
+            <div class="timer" id="timer">
+                60秒
+            </div>
+
+        </div>
+
+        <canvas id="board"></canvas>
+
+    </div>
+
+    <div class="right">
+
+        <div class="section">
+
+            <div class="title">
+                加入房间
+            </div>
+
+            <input id="name" placeholder="输入昵称">
+
+            <input id="room" placeholder="输入房间号">
+
+            <button class="join" onclick="joinRoom()">
+                加入游戏
+            </button>
+
+        </div>
+
+        <div class="section">
+
+            <div class="title">
+                当前词语
+            </div>
+
+            <div class="word" id="word">
+                等待开始
+            </div>
+
+            <button class="start" onclick="startGame()">
+                开始游戏
+            </button>
+
+            <button class="clear" onclick="clearBoard()">
+                清空画板
+            </button>
+
+        </div>
+
+        <div class="section">
+
+            <div class="title">
+                猜答案
+            </div>
+
+            <input id="guess" placeholder="输入答案">
+
+            <button class="join" onclick="guessWord()">
+                提交答案
+            </button>
+
+            <div class="message" id="message"></div>
+
+        </div>
+
+        <div class="section">
+
+            <div class="title">
+                Emoji互动
+            </div>
+
+            <div class="emoji-list">
+
+                <button class="emoji-btn" onclick="sendEmoji('😂')">😂</button>
+                <button class="emoji-btn" onclick="sendEmoji('🔥')">🔥</button>
+                <button class="emoji-btn" onclick="sendEmoji('😱')">😱</button>
+                <button class="emoji-btn" onclick="sendEmoji('🎉')">🎉</button>
+                <button class="emoji-btn" onclick="sendEmoji('👏')">👏</button>
+                <button class="emoji-btn" onclick="sendEmoji('💀')">💀</button>
+                <button class="emoji-btn" onclick="sendEmoji('😍')">😍</button>
+                <button class="emoji-btn" onclick="sendEmoji('🤯')">🤯</button>
+
+            </div>
+
+        </div>
+
+        <div class="section">
+
+            <div class="title">
+                排行榜
+            </div>
+
+            <div class="scoreboard" id="scoreboard"></div>
+
+        </div>
+
+        <div class="section">
+
+            <div class="title">
+                聊天
+            </div>
+
+            <div class="chat" id="chat"></div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+/* Supabase */
+
+const SUPABASE_URL = "你的SUPABASE_URL";
+const SUPABASE_KEY = "你的SUPABASE_ANON_KEY";
+
+const supabase =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+    );
+
+/* 游戏数据 */
+
+let room = "";
+let name = "";
+
+const words = [
+    "苹果",
+    "沙发",
+    "汽车",
+    "飞机",
+    "猫",
+    "狗",
+    "披萨",
+    "电脑",
+    "手机",
+    "咖啡桌"
+];
+
+let currentWord = "";
+
+let scores = {};
+
+/* 加入 */
+
+async function joinRoom(){
+
+    room =
+        document.getElementById("room")
+        .value.trim();
+
+    name =
+        document.getElementById("name")
+        .value.trim();
+
+    if(!room || !name){
+
+        alert("请输入昵称和房间号");
+
+        return;
+
+    }
+
+    addChat("🎮 已加入房间");
+
+    listenRealtime();
+
+}
+
+/* 发送事件 */
+
+async function sendEvent(type,data){
+
+    await supabase
+        .from("game_events")
+        .insert({
+            room,
+            type,
+            data
+        });
+
+}
+
+/* 实时监听 */
+
+function listenRealtime(){
+
+    supabase
+        .channel("room-"+room)
+
+        .on(
+            "postgres_changes",
+            {
+                event:"INSERT",
+                schema:"public",
+                table:"game_events"
+            },
+
+            payload=>{
+
+                const event = payload.new;
+
+                if(event.room !== room) return;
+
+                handleEvent(event);
+
+            }
+
+        )
+
+        .subscribe();
+
+}
+
+/* 处理事件 */
+
+function handleEvent(event){
+
+    if(event.type === "draw"){
+
+        drawRemote(event.data);
+
+    }
+
+    if(event.type === "clear"){
+
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    }
+
+    if(event.type === "chat"){
+
+        addChat(event.data.text);
+
+    }
+
+    if(event.type === "emoji"){
+
+        showEmoji(event.data.emoji);
+
+    }
+
+    if(event.type === "start"){
+
+        currentWord = event.data.word;
+
+        document.getElementById("word")
+        .innerText = currentWord;
+
+        startTimer();
+
+    }
+
+    if(event.type === "score"){
+
+        scores = event.data;
+
+        renderScores();
+
+    }
+
+}
+
+/* 粒子背景 */
+
+const bg =
+    document.getElementById("bg");
+
+const bgctx =
+    bg.getContext("2d");
+
+bg.width = innerWidth;
+bg.height = innerHeight;
+
+const particles = [];
+
+for(let i=0;i<120;i++){
+
+    particles.push({
+
+        x:Math.random()*innerWidth,
+        y:Math.random()*innerHeight,
+        r:Math.random()*3,
+        dx:(Math.random()-0.5),
+        dy:(Math.random()-0.5)
+
+    });
+
+}
+
+function animateBg(){
+
+    bgctx.clearRect(0,0,bg.width,bg.height);
+
+    particles.forEach(p=>{
+
+        p.x += p.dx;
+        p.y += p.dy;
+
+        if(p.x<0 || p.x>innerWidth)
+            p.dx *= -1;
+
+        if(p.y<0 || p.y>innerHeight)
+            p.dy *= -1;
+
+        bgctx.beginPath();
+
+        bgctx.arc(
+            p.x,p.y,p.r,0,Math.PI*2
+        );
+
+        bgctx.fillStyle="#00f7ff";
+
+        bgctx.fill();
+
+    });
+
+    requestAnimationFrame(animateBg);
+
+}
+
+animateBg();
+
+/* 画板 */
+
+const canvas =
+    document.getElementById("board");
+
+const ctx =
+    canvas.getContext("2d");
+
+function resize(){
+
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+}
+
+resize();
+
+window.addEventListener("resize",resize);
+
+ctx.lineWidth = 4;
+ctx.lineCap = "round";
+
+let drawing = false;
+
+function pos(e){
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    return{
+
+        x:e.clientX - rect.left,
+        y:e.clientY - rect.top
+
+    };
+
+}
+
+canvas.addEventListener("mousedown",e=>{
+
+    drawing = true;
+
+    const p = pos(e);
+
+    ctx.beginPath();
+
+    ctx.moveTo(p.x,p.y);
+
+});
+
+canvas.addEventListener("mousemove",e=>{
+
+    if(!drawing) return;
+
+    const p = pos(e);
+
+    ctx.lineTo(p.x,p.y);
+
+    ctx.stroke();
+
+    sendEvent("draw",p);
+
+});
+
+window.addEventListener("mouseup",()=>{
+
+    drawing = false;
+
+});
+
+/* 远程绘画 */
+
+function drawRemote(data){
+
+    ctx.lineTo(data.x,data.y);
+
+    ctx.stroke();
+
+}
+
+/* 清空 */
+
+function clearBoard(){
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    sendEvent("clear",{});
+
+}
+
+/* 开始 */
+
+function startGame(){
+
+    currentWord =
+        words[
+            Math.floor(
+                Math.random()*words.length
+            )
+        ];
+
+    sendEvent("start",{
+        word:currentWord
+    });
+
+}
+
+/* 猜答案 */
+
+function guessWord(){
+
+    const value =
+        document.getElementById("guess")
+        .value
+        .trim();
+
+    if(value === currentWord){
+
+        document.getElementById("message")
+        .innerText =
+            "🎉 猜对了";
+
+        if(!scores[name]){
+
+            scores[name] = 0;
+
+        }
+
+        scores[name] += 10;
+
+        renderScores();
+
+        sendEvent("score",scores);
+
+    }else{
+
+        document.getElementById("message")
+        .innerText =
+            "❌ 猜错了";
+
+    }
+
+}
+
+/* 排行榜 */
+
+function renderScores(){
+
+    const board =
+        document.getElementById("scoreboard");
+
+    board.innerHTML = "";
+
+    for(let n in scores){
+
+        board.innerHTML += `
+
+            <div class="player">
+
+                <span>${n}</span>
+
+                <span>${scores[n]}分</span>
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+/* 聊天 */
+
+function addChat(text){
+
+    const chat =
+        document.getElementById("chat");
+
+    chat.innerHTML += `
+
+        <div class="msg">
+
+            ${text}
+
+        </div>
+
+    `;
+
+    chat.scrollTop = chat.scrollHeight;
+
+}
+
+/* Emoji */
+
+function sendEmoji(e){
+
+    sendEvent("emoji",{
+        emoji:e
+    });
+
+}
+
+function showEmoji(e){
+
+    const div =
+        document.createElement("div");
+
+    div.innerText = e;
+
+    div.style.position = "fixed";
+
+    div.style.left =
+        Math.random()*window.innerWidth + "px";
+
+    div.style.top =
+        window.innerHeight + "px";
+
+    div.style.fontSize = "60px";
+
+    div.style.zIndex = "999";
+
+    document.body.appendChild(div);
+
+    let y = window.innerHeight;
+
+    const move = setInterval(()=>{
+
+        y -= 5;
+
+        div.style.top = y + "px";
+
+        if(y < -100){
+
+            clearInterval(move);
+
+            div.remove();
+
+        }
+
+    },16);
+
+}
+
+/* 倒计时 */
+
+let timer = 60;
+let interval;
+
+function startTimer(){
+
+    clearInterval(interval);
+
+    timer = 60;
+
+    document.getElementById("timer")
+    .innerText = timer + "秒";
+
+    interval = setInterval(()=>{
+
+        timer--;
+
+        document.getElementById("timer")
+        .innerText = timer + "秒";
+
+        if(timer <= 0){
+
+            clearInterval(interval);
+
+        }
+
+    },1000);
+
+}
+
+</script>
+
+</body>
+</html>
+```

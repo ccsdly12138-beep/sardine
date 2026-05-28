@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Supabase Snake.io</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+html,body{
+margin:0;
+overflow:hidden;
+background:#000;
+touch-action:none;
+}
+canvas{position:absolute;top:0;left:0;}
+#ui{
+position:fixed;
+top:10px;
+left:10px;
+color:#0f0;
+font-family:Arial;
+z-index:10;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="c"></canvas>
+<div id="ui">🐍 Multiplayer Snake.io</div>
+
+<script>
+
+/* ================= CONFIG ================= */
+const supabaseUrl = "你的SUPABASE_URL";
+const supabaseKey = "你的SUPABASE_ANON_KEY";
+const sb = supabase.createClient(supabaseUrl, supabaseKey);
+
+/* ================= ROOM ================= */
+const roomId = new URLSearchParams(location.search).get("room") || "room-1";
+
+/* ================= CANVAS ================= */
+const c = document.getElementById("c");
+const ctx = c.getContext("2d");
+c.width = innerWidth;
+c.height = innerHeight;
+
+/* ================= PLAYER ================= */
+const id = Math.random().toString(36).slice(2);
+
+let me = {
+id,
+room_id: roomId,
+name: "P" + Math.floor(Math.random()*999),
+x: 200,
+y: 200,
+dir: "RIGHT",
+body: [{x:200,y:200}],
+score: 0,
+alive: true
+};
+
+let players = {};
+
+/* ================= FOOD ================= */
+let food = {
+x: Math.floor(Math.random()*50)*10,
+y: Math.floor(Math.random()*50)*10
+};
+
+/* ================= INPUT ================= */
+document.addEventListener("keydown",e=>{
+if(e.key==="ArrowUp")me.dir="UP";
+if(e.key==="ArrowDown")me.dir="DOWN";
+if(e.key==="ArrowLeft")me.dir="LEFT";
+if(e.key==="ArrowRight")me.dir="RIGHT";
+});
+
+/* ================= TOUCH ================= */
+let sx,sy;
+document.addEventListener("touchstart",e=>{
+sx=e.touches[0].clientX;
+sy=e.touches[0].clientY;
+});
+
+document.addEventListener("touchend",e=>{
+let dx=e.changedTouches[0].clientX-sx;
+let dy=e.changedTouches[0].clientY-sy;
+
+if(Math.abs(dx)>Math.abs(dy)){
+me.dir = dx>0?"RIGHT":"LEFT";
+}else{
+me.dir = dy>0?"DOWN":"UP";
+}
+});
+
+/* ================= MOVE ================= */
+function move(p){
+let h = {...p.body[0]};
+
+if(p.dir==="RIGHT")h.x+=10;
+if(p.dir==="LEFT")h.x-=10;
+if(p.dir==="UP")h.y-=10;
+if(p.dir==="DOWN")h.y+=10;
+
+p.body.unshift(h);
+p.body.pop();
+
+p.x = h.x;
+p.y = h.y;
+}
+
+/* ================= COLLISION ================= */
+function hit(a,b){
+return a.x===b.x && a.y===b.y;
+}
+
+/* ================= SYNC ================= */
+async function sync(){
+await sb.from("players").upsert(me);
+}
+
+/* ================= REALTIME ================= */
+sb.channel("game")
+.on("postgres_changes",
+{event:"*",schema:"public",table:"players"},
+payload=>{
+let p = payload.new;
+if(p.room_id===roomId){
+players[p.id]=p;
+}
+})
+.subscribe();
+
+/* ================= LOOP ================= */
+function loop(){
+
+ctx.clearRect(0,0,c.width,c.height);
+
+move(me);
+
+/* eat food */
+if(hit(me.body[0],food)){
+me.score++;
+food = {
+x: Math.floor(Math.random()*c.width/10)*10,
+y: Math.floor(Math.random()*c.height/10)*10
+};
+}else{
+me.body.pop();
+}
+
+sync();
+
+/* draw food */
+ctx.fillStyle="red";
+ctx.fillRect(food.x,food.y,10,10);
+
+/* draw players */
+Object.values(players).forEach(p=>{
+if(!p.body)return;
+
+ctx.fillStyle = p.id===me.id ? "#0f0" : "#f0f";
+
+p.body.forEach(b=>{
+ctx.fillRect(b.x,b.y,10,10);
+});
+
+ctx.fillText(p.name,p.x,p.y-10);
+});
+
+requestAnimationFrame(loop);
+}
+
+loop();
+
+</script>
+
+</body>
+</html>

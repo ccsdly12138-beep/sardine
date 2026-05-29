@@ -253,6 +253,15 @@ button:disabled{ opacity:0.35; cursor:not-allowed; transform:none !important; }
 </div>
 
 <script>
+  const SUPABASE_URL = 'https://sheythvfvmvwzvgvvwvm.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoZXl0aHZmdm12d3p2Z3Z2d3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NDQzOTEsImV4cCI6MjA5NTQyMDM5MX0.wXOO4uyVhVeKlCQ2tyoyxdU0lWrYQRA2tQD4ho89iCo';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 检查登录状态，没登录跳转到登录页
+db.auth.getSession().then(({ data }) => {
+  if (!data.session) window.location.href = 'auth.html';
+});
 const SUPABASE_URL = "https://sheythvfvmvwzvgvvwvm.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoZXl0aHZmdm12d3p2Z3Z2d3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NDQzOTEsImV4cCI6MjA5NTQyMDM5MX0.wXOO4uyVhVeKlCQ2tyoyxdU0lWrYQRA2tQD4ho89iCo";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
